@@ -1,0 +1,5 @@
+Sample Questions
+
+1. What is 7 + 5?
+2. Explain the difference between speed and velocity.
+3. Solve: If f(x) = x^2 + 3x + 2, find f(2).

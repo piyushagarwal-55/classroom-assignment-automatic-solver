@@ -1,0 +1,435 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-warning: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --gradient-dark: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+  --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --shadow-hard: 0 30px 80px rgba(0, 0, 0, 0.2);
+  --shadow-colored: 0 20px 60px rgba(102, 126, 234, 0.3);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #f8fafc;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* Custom Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Custom Utility Classes */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s ease-out;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 2s ease-in-out infinite;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Glass Morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient Backgrounds */
+.bg-gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.bg-gradient-secondary {
+  background: var(--gradient-secondary);
+}
+
+.bg-gradient-success {
+  background: var(--gradient-success);
+}
+
+.bg-gradient-warning {
+  background: var(--gradient-warning);
+}
+
+.bg-gradient-dark {
+  background: var(--gradient-dark);
+}
+
+.bg-gradient-mesh {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+  background-size: 400% 400%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Custom Shadows */
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-medium {
+  box-shadow: var(--shadow-medium);
+}
+
+.shadow-hard {
+  box-shadow: var(--shadow-hard);
+}
+
+.shadow-colored {
+  box-shadow: var(--shadow-colored);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 50px rgba(102, 126, 234, 0.4);
+}
+
+/* Button Styles */
+.btn-primary {
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl;
+}
+
+.btn-secondary {
+  @apply bg-white text-gray-800 font-semibold py-4 px-8 rounded-2xl border-2 border-gray-200 transition-all duration-300 hover:border-blue-500 hover:text-blue-600 hover:shadow-lg;
+}
+
+.btn-gradient {
+  @apply bg-gradient-to-r from-pink-500 to-violet-500 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl;
+}
+
+.btn-glass {
+  @apply glass text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 hover:bg-white/20 hover:shadow-xl;
+}
+
+.btn-outline {
+  @apply border-2 border-white/30 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 hover:bg-white hover:text-gray-900 hover:shadow-xl;
+}
+
+/* Card Styles */
+.card {
+  @apply bg-white rounded-3xl shadow-soft border border-gray-100 p-8 transition-all duration-300 hover:shadow-medium hover:transform hover:scale-[1.02];
+}
+
+.card-gradient {
+  @apply bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-soft border border-blue-100 p-8 transition-all duration-300 hover:shadow-medium hover:transform hover:scale-[1.02];
+}
+
+.card-dark {
+  @apply bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-hard border border-gray-700 p-8 transition-all duration-300 hover:shadow-xl hover:transform hover:scale-[1.02];
+}
+
+.card-glass {
+  @apply glass rounded-3xl p-8 transition-all duration-300 hover:bg-white/15 hover:transform hover:scale-[1.02];
+}
+
+/* Input Styles */
+.input-field {
+  @apply w-full px-6 py-4 rounded-2xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all duration-300 bg-white text-gray-900;
+}
+
+.input-field-dark {
+  @apply w-full px-6 py-4 rounded-2xl border-2 border-white/20 focus:border-white/40 focus:ring-4 focus:ring-white/10 focus:outline-none transition-all duration-300 bg-white/10 text-white placeholder-white/60;
+}
+
+.input-glass {
+  @apply w-full px-6 py-4 rounded-2xl glass focus:bg-white/20 focus:ring-4 focus:ring-white/20 focus:outline-none transition-all duration-300 text-white placeholder-white/60;
+}
+
+/* Text Styles */
+.text-gradient {
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+}
+
+.text-gradient-secondary {
+  @apply bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent;
+}
+
+.text-gradient-rainbow {
+  @apply bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent;
+}
+
+/* Responsive Typography */
+.heading-xl {
+  @apply text-6xl md:text-7xl lg:text-8xl font-black leading-tight;
+  font-family: 'Poppins', sans-serif;
+}
+
+.heading-lg {
+  @apply text-4xl md:text-5xl lg:text-6xl font-bold leading-tight;
+  font-family: 'Poppins', sans-serif;
+}
+
+.heading-md {
+  @apply text-3xl md:text-4xl font-bold leading-tight;
+  font-family: 'Poppins', sans-serif;
+}
+
+.heading-sm {
+  @apply text-xl md:text-2xl font-semibold;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid transparent;
+  border-top: 3px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-lg {
+  width: 40px;
+  height: 40px;
+  border: 4px solid transparent;
+  border-top: 4px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+/* Selection */
+::selection {
+  background: rgba(102, 126, 234, 0.3);
+}
+
+/* Focus Styles */
+.focus-ring {
+  @apply focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none;
+}
+
+/* Hover Effects */
+.hover-lift {
+  @apply transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg;
+}
+
+.hover-glow {
+  @apply transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/25;
+}
+
+.hover-float {
+  @apply transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-xl;
+}
+
+/* Icon Animations */
+.icon-bounce {
+  @apply transition-transform duration-300 hover:animate-bounce-gentle;
+}
+
+.icon-spin {
+  @apply transition-transform duration-300 hover:rotate-12;
+}
+
+/* Background Patterns */
+.bg-dots {
+  background-image: radial-gradient(circle, rgba(102, 126, 234, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-grid {
+  background-image: linear-gradient(rgba(102, 126, 234, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(102, 126, 234, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .card, .card-gradient, .card-dark, .card-glass {
+    @apply p-6;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-gradient, .btn-glass, .btn-outline {
+    @apply py-3 px-6 text-sm;
+  }
+  
+  .input-field, .input-field-dark, .input-glass {
+    @apply px-4 py-3;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .auto-dark {
+    @apply bg-gray-900 text-white;
+  }
+}
+
+/* Custom Gradients for specific elements */
+.hero-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+  background-size: 400% 400%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.feature-gradient {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+}
+
+/* 3D Effects */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.card-3d:hover {
+  transform: rotateX(5deg) rotateY(5deg) translateZ(10px);
+}
+
+/* Glassmorphism navbar */
+.navbar-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
