@@ -5,7 +5,6 @@ const path = require('path');
 const { auth } = require('../middleware/auth');
 const Solution = require('../models/Solution');
 
-// Add CORS headers to all responses in this router
 router.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -14,7 +13,7 @@ router.use((req, res, next) => {
   next();
 });
 
-// Handle preflight requests for solve endpoint
+
 router.options('/solve', (req, res) => {
   res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -48,7 +47,7 @@ router.options('/solution/:solutionId', (req, res) => {
 router.options('/solution/:solutionId/pdf', (req, res) => {
   res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.sendStatus(200);
 });
@@ -72,6 +71,7 @@ router.post('/solve', auth, async (req, res) => {
 
     // Validate required fields
     if (!assignmentId || !assignmentTitle || !courseId || !courseName) {
+
       return res.status(400).json({
         error: 'Missing required fields: assignmentId, assignmentTitle, courseId, courseName'
       });
@@ -199,14 +199,104 @@ router.get('/solution/:solutionId/pdf', auth, async (req, res) => {
       });
     }
 
+    console.log('📄 PDF DOWNLOAD - Sending PDF, size:', solution.solutionPdf.length, 'bytes');
+    console.log('📄 PDF DOWNLOAD - Assignment title:', solution.assignmentTitle);
+    
+    // Check if the PDF is valid (starts with %PDF)
+    const isValidPdf = solution.solutionPdf.length > 4 && 
+                      solution.solutionPdf[0] === 0x25 && 
+                      solution.solutionPdf[1] === 0x50 && 
+                      solution.solutionPdf[2] === 0x44 && 
+                      solution.solutionPdf[3] === 0x46;
+    
+    let pdfBuffer = solution.solutionPdf;
+    
+    if (!isValidPdf) {
+      console.log('📄 PDF DOWNLOAD - Invalid PDF detected, regenerating...');
+      try {
+        // Regenerate PDF from solution text
+        pdfBuffer = await createSimplePdf(solution.solutionText || 'No solution text available');
+        
+        // Update the solution with the new PDF
+        if (pdfBuffer && pdfBuffer.length > 0) {
+          solution.solutionPdf = pdfBuffer;
+          await solution.save();
+          console.log('📄 PDF DOWNLOAD - PDF regenerated and saved, new size:', pdfBuffer.length);
+        }
+      } catch (error) {
+        console.error('📄 PDF DOWNLOAD - Error regenerating PDF:', error);
+        return res.status(500).json({
+          error: 'Failed to generate valid PDF'
+        });
+      }
+    } else {
+      console.log('📄 PDF DOWNLOAD - Valid PDF detected');
+    }
+    
+    // Disable caching to prevent 304 Not Modified responses
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('ETag', `"${Date.now()}"`); // Force unique ETag every time
+    
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // Set PDF headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${solution.assignmentTitle}_solution.pdf"`);
-    res.send(solution.solutionPdf);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Content-Disposition', `inline; filename="${solution.assignmentTitle}_solution.pdf"`);
+    
+    console.log('📄 PDF DOWNLOAD - Headers set, sending PDF buffer');
+    res.send(pdfBuffer);
 
   } catch (error) {
     console.error('❌ Error downloading solution PDF:', error);
     res.status(500).json({
       error: 'Failed to download solution PDF',
+      message: error.message
+    });
+  }
+});
+
+// @route   DELETE /api/assignments/solution/:solutionId
+// @desc    Delete a solution
+// @access  Private
+router.delete('/solution/:solutionId', auth, async (req, res) => {
+  try {
+    const { solutionId } = req.params;
+    const user = req.user;
+
+    console.log('🗑️ DELETE SOLUTION - Attempting to delete solution:', solutionId);
+
+    const solution = await Solution.findOne({
+      _id: solutionId,
+      userId: user._id
+    });
+
+    if (!solution) {
+      return res.status(404).json({
+        error: 'Solution not found'
+      });
+    }
+
+    // Delete the solution
+    await Solution.findByIdAndDelete(solutionId);
+
+    console.log('🗑️ DELETE SOLUTION - Solution deleted successfully');
+
+    res.json({
+      success: true,
+      message: 'Solution deleted successfully',
+      deletedSolutionId: solutionId,
+      assignmentId: solution.assignmentId
+    });
+
+  } catch (error) {
+    console.error('❌ Error deleting solution:', error);
+    res.status(500).json({
+      error: 'Failed to delete solution',
       message: error.message
     });
   }
@@ -314,25 +404,35 @@ async function solveAssignmentAsync(solutionId, accessToken, materials) {
     
     console.log('🤖 Calling Python solver with materials:', materials?.length || 0);
     
-    // Spawn Python process with full path
+    // Spawn Python process with full path and UTF-8 encoding
     const pythonExecutable = 'C:\\Python313\\python.exe';
     const pythonProcess = spawn(pythonExecutable, [
       pythonSolverPath,
       geminiApiKey,
       accessToken,
       materialsJson
-    ]);
+    ], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: 'utf-8',
+        PYTHONUNBUFFERED: '1'
+      }
+    });
 
     let solutionText = '';
     let errorOutput = '';
 
+    pythonProcess.stdout.setEncoding('utf8');
+    pythonProcess.stderr.setEncoding('utf8');
+
     pythonProcess.stdout.on('data', (data) => {
-      solutionText += data.toString();
+      solutionText += data.toString('utf8');
     });
 
     pythonProcess.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-      console.error('🤖 Python solver error:', data.toString());
+      errorOutput += data.toString('utf8');
+      console.error('🤖 Python solver error:', data.toString('utf8'));
     });
 
     pythonProcess.on('close', async (code) => {
@@ -414,30 +514,67 @@ async function solveAssignmentAsync(solutionId, accessToken, materials) {
   }
 }
 
-// Simple PDF creation fallback
+// Simple PDF creation using PDFKit
 async function createSimplePdf(text) {
   try {
     if (!text || text.trim().length === 0) {
       return Buffer.from(''); // Return empty buffer for empty text
     }
 
-    // Create a simple HTML to PDF conversion approach
-    // For now, return empty buffer - you could integrate a PDF library here
-    const pdfContent = `
-PDF Content:
-Assignment Solution
-
-${text}
-
-Generated by Assignment Solver
-Date: ${new Date().toISOString()}
-`;
+    // Import PDFKit dynamically
+    const PDFDocument = require('pdfkit');
     
-    // For now, return the text as a simple buffer
-    // In a production environment, you'd use a proper PDF library
-    return Buffer.from(pdfContent, 'utf-8');
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument();
+        const buffers = [];
+        
+        // Collect PDF data
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => {
+          const pdfBuffer = Buffer.concat(buffers);
+          console.log('📄 PDF created successfully, size:', pdfBuffer.length, 'bytes');
+          // Verify it's a valid PDF by checking header
+          if (pdfBuffer.length > 4 && pdfBuffer[0] === 0x25 && pdfBuffer[1] === 0x50 && pdfBuffer[2] === 0x44 && pdfBuffer[3] === 0x46) {
+            console.log('📄 PDF header validation: ✅ Valid PDF');
+          } else {
+            console.log('📄 PDF header validation: ❌ Invalid PDF header');
+          }
+          resolve(pdfBuffer);
+        });
+        
+        // Set font and add content
+        doc.fontSize(16).text('Assignment Solution', 50, 50);
+        doc.moveDown();
+        
+        doc.fontSize(12);
+        const lines = text.split('\n');
+        let y = doc.y;
+        
+        for (const line of lines) {
+          if (y > 750) { // Page break
+            doc.addPage();
+            y = 50;
+          }
+          doc.text(line, 50, y);
+          y += 15;
+        }
+        
+        doc.moveDown();
+        doc.fontSize(10).text(`Generated: ${new Date().toISOString()}`, 50, y + 20);
+        
+        // Finalize the PDF
+        doc.end();
+        
+      } catch (error) {
+        console.error('Error in PDF creation:', error);
+        reject(error);
+      }
+    });
+    
   } catch (error) {
-    console.error('Error creating simple PDF:', error);
+    console.error('Error creating PDF:', error);
+    // Fallback: return empty buffer
     return Buffer.from('');
   }
 }

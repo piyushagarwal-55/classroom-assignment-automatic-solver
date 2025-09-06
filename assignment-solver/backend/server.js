@@ -24,7 +24,27 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'cache-control', 
+    'Cache-Control',
+    'pragma', 
+    'Pragma',
+    'Accept',
+    'Origin',
+    'DNT',
+    'X-CustomHeader',
+    'Keep-Alive',
+    'User-Agent',
+    'X-Requested-With',
+    'If-Modified-Since',
+    'Cache-Control',
+    'Content-Range',
+    'Range'
+  ],
+  exposedHeaders: ['Content-Length', 'Content-Type', 'Content-Disposition'],
   preflightContinue: false,
   optionsSuccessStatus: 200
 }));
