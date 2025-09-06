@@ -122,10 +122,46 @@ export const assignmentService = {
 
   // Download solution PDF
   downloadSolutionPdf: async (solutionId) => {
-    const response = await api.get(`/assignments/solution/${solutionId}/pdf`, {
-      responseType: 'blob'
-    });
-    return response.data;
+    console.log('🔗 API - Downloading PDF for solution:', solutionId);
+    try {
+      const response = await api.get(`/assignments/solution/${solutionId}/pdf?t=${Date.now()}`, {
+        responseType: 'blob',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      console.log('🔗 API - PDF response received:', response);
+      console.log('🔗 API - Response status:', response.status);
+      console.log('🔗 API - Response headers:', response.headers);
+      console.log('🔗 API - Response data type:', typeof response.data);
+      console.log('🔗 API - Response data size:', response.data.size || response.data.byteLength || 'unknown');
+      
+      // Verify the response is actually a blob and not empty
+      if (response.data.size === 0) {
+        throw new Error('Received empty PDF data from server');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('🔗 API - PDF download error:', error);
+      console.error('🔗 API - Error response:', error.response);
+      throw error;
+    }
+  },
+
+  // Delete solution
+  deleteSolution: async (solutionId) => {
+    console.log('🗑️ API - Deleting solution:', solutionId);
+    try {
+      const response = await api.delete(`/assignments/solution/${solutionId}`);
+      console.log('🗑️ API - Solution deleted successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('🗑️ API - Delete solution error:', error);
+      console.error('🗑️ API - Error response:', error.response);
+      throw error;
+    }
   },
 
   // Get user's solutions history

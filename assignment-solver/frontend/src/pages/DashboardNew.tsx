@@ -16,7 +16,8 @@ import {
   LinkIcon,
   EyeIcon,
   PlayIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import { useAssignments } from '../hooks/useAssignments';
@@ -185,6 +186,53 @@ const Dashboard: React.FC = () => {
   }, [assignments.length, loadingSolutions, solvedAssignments.size]); // Include all dependencies
   */
 
+  // Function to load/refresh existing solutions
+  const loadExistingSolutions = async () => {
+    try {
+      console.log('🔍 Loading/refreshing existing solutions...');
+      
+      const solutions = await assignmentService.getSolutions();
+      console.log('📝 Solutions response:', solutions);
+      
+      if (solutions.success) {
+        const newSolvedAssignments = new Set<string>();
+        const newAssignmentSolutions = new Map<string, string>();
+        
+        solutions.solutions.forEach((solution: any) => {
+          if (solution.status === 'completed' && solution.assignmentId) {
+            newSolvedAssignments.add(solution.assignmentId);
+            newAssignmentSolutions.set(solution.assignmentId, solution._id);
+          }
+        });
+        
+        setSolvedAssignments(newSolvedAssignments);
+        setAssignmentSolutions(newAssignmentSolutions);
+        
+        console.log('✅ Solutions loaded successfully:', solutions.solutions.length, 'solutions');
+        console.log('✅ Solved assignments:', newSolvedAssignments.size);
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading existing solutions:', error);
+    }
+  };
+
+  // Comprehensive refresh function
+  const refreshAll = async () => {
+    console.log('🔄 Comprehensive refresh starting...');
+    // Refresh assignments from the hook
+    refresh();
+    // Also refresh solutions
+    await loadExistingSolutions();
+    console.log('🔄 Comprehensive refresh completed');
+  };
+
+  // Load solutions when assignments are available and none loaded yet
+  useEffect(() => {
+    if (assignments.length > 0 && solvedAssignments.size === 0) {
+      loadExistingSolutions();
+    }
+  }, [assignments.length]); // Only depend on assignments.length to avoid loops
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -275,6 +323,83 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Test function to debug PDF blob issues
+  const testPDFBlob = async () => {
+    try {
+      console.log('🧪 Testing PDF blob creation');
+      
+      // Create a simple test PDF content
+      const testPdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+100 700 Td
+(Hello World) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000207 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+296
+%%EOF`;
+      
+      // Create blob and test
+      const blob = new Blob([testPdfContent], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      
+      console.log('🧪 Test blob created:', blob.size, 'bytes');
+      console.log('🧪 Test blob URL:', url);
+      
+      // Try to open test PDF
+      const newWindow = window.open(url, '_blank');
+      if (newWindow) {
+        console.log('🧪 Test PDF opened successfully');
+        setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+      } else {
+        console.log('🧪 Test PDF popup blocked');
+      }
+      
+    } catch (error) {
+      console.error('🧪 Test PDF error:', error);
+    }
+  };
+
   const handleDownloadPDF = async (assignment: Assignment) => {
     try {
       const solutionId = assignmentSolutions.get(assignment.id);
@@ -283,29 +408,152 @@ const Dashboard: React.FC = () => {
         return;
       }
 
+      console.log('📄 Starting PDF download for solution:', solutionId);
+      
+      // Show loading state
+      setErrorMessage(''); // Clear any previous errors
+      setSuccessMessage('Loading PDF...');
+      
       const response = await assignmentService.downloadSolutionPdf(solutionId);
+      console.log('📄 PDF response received, type:', typeof response);
+      console.log('📄 PDF response size:', response?.size || response?.byteLength || 'unknown');
+      console.log('📄 PDF response:', response);
       
-      // Create a blob from the response
-      const blob = new Blob([response], { type: 'application/pdf' });
+      // Verify we got valid data
+      if (!response || (response.size === 0 && response.byteLength === 0)) {
+        throw new Error('Received empty PDF data');
+      }
       
-      // Create a download link
+      // Create a blob from the response with explicit type
+      const blob = new Blob([response], { 
+        type: 'application/pdf'
+      });
+      console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
+      
+      // Verify blob was created successfully
+      if (blob.size === 0) {
+        throw new Error('Failed to create PDF blob');
+      }
+      
+      // Create a URL for the blob
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${assignment.title}_solution.pdf`);
+      console.log('📄 Blob URL created:', url);
       
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
+      // Clear loading message
+      setSuccessMessage('');
       
-      // Cleanup
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      // Try to open in new tab for viewing
+      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
       
-      setSuccessMessage(`PDF solution for "${assignment.title}" downloaded successfully!`);
+      if (newWindow) {
+        console.log('📄 PDF opened in new tab');
+        setSuccessMessage(`PDF solution for "${assignment.title}" opened in new tab!`);
+        
+        // Don't revoke the URL immediately, let the browser load it first
+        // We'll revoke it after the new window loads
+        newWindow.onload = () => {
+          console.log('📄 New window loaded, will cleanup URL in 5 seconds');
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            console.log('📄 Blob URL cleaned up');
+          }, 5000);
+        };
+        
+        // Fallback cleanup in case onload doesn't fire
+        setTimeout(() => {
+          try {
+            window.URL.revokeObjectURL(url);
+            console.log('📄 Fallback blob URL cleanup');
+          } catch (e) {
+            console.log('📄 URL already revoked');
+          }
+        }, 10000);
+        
+      } else {
+        console.log('📄 Popup blocked, triggering download');
+        // If popup is blocked, trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${assignment.title}_solution.pdf`;
+        link.style.display = 'none';
+        
+        // Add to DOM, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setSuccessMessage(`PDF solution for "${assignment.title}" downloaded successfully!`);
+        
+        // Cleanup after download
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 1000);
+      }
+      
     } catch (error: any) {
       console.error('❌ Error downloading PDF:', error);
-      setErrorMessage(`Failed to download PDF: ${error.response?.data?.error || error.message}`);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      setSuccessMessage(''); // Clear loading message
+      setErrorMessage(`Failed to open PDF: ${error.response?.data?.error || error.message}`);
+    }
+  };
+
+  const handleDeleteSolution = async (assignment: Assignment) => {
+    // Get solution ID for this assignment
+    const solutionId = assignmentSolutions.get(assignment.id);
+    
+    if (!solutionId) {
+      setErrorMessage('No solution found to delete');
+      return;
+    }
+
+    try {
+      const confirmed = window.confirm(`Are you sure you want to delete the solution for "${assignment.title}"? This action cannot be undone.`);
+      
+      if (!confirmed) {
+        return;
+      }
+
+      console.log('🗑️ Deleting solution for assignment:', assignment.title);
+      setErrorMessage('');
+      setSuccessMessage('Deleting solution...');
+
+      // Call delete API
+      const response = await assignmentService.deleteSolution(solutionId);
+      
+      if (response.success) {
+        console.log('🗑️ Solution deleted successfully');
+        
+        // Update state immediately to reflect the deletion
+        setSolvedAssignments(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(assignment.id);
+          return newSet;
+        });
+        
+        setAssignmentSolutions(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(assignment.id);
+          return newMap;
+        });
+        
+        setSuccessMessage(`✅ Solution for "${assignment.title}" deleted successfully!`);
+        
+        // Also refresh the solutions data to ensure everything is in sync
+        setTimeout(() => {
+          loadExistingSolutions();
+          refresh();
+        }, 500);
+      } else {
+        setErrorMessage('Failed to delete solution');
+      }
+    } catch (error: any) {
+      console.error('❌ Error deleting solution:', error);
+      setErrorMessage(`Failed to delete solution: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -622,7 +870,7 @@ const Dashboard: React.FC = () => {
                     {pendingAssignments.length} assignments to solve
                   </span>
                   <button
-                    onClick={refresh}
+                    onClick={refreshAll}
                     className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 text-sm rounded-xl transition-all duration-200"
                     disabled={loading}
                   >
@@ -641,7 +889,7 @@ const Dashboard: React.FC = () => {
                   <ExclamationTriangleIcon className="w-12 h-12 text-red-400 mx-auto mb-4" />
                   <p className="text-red-300 mb-4">{error}</p>
                   <button
-                    onClick={refresh}
+                    onClick={refreshAll}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                   >
                     Try Again
@@ -757,14 +1005,25 @@ const Dashboard: React.FC = () => {
                             
                             {/* Download PDF Button - only show if solved */}
                             {solvedAssignments.has(assignment.id) && assignmentSolutions.has(assignment.id) && (
-                              <button
-                                onClick={() => handleDownloadPDF(assignment)}
-                                className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1 transition-all duration-200"
-                                title="Download PDF Solution"
-                              >
-                                <ArrowDownTrayIcon className="w-3 h-3" />
-                                <span>Download PDF</span>
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handleDownloadPDF(assignment)}
+                                  className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1 transition-all duration-200"
+                                  title="Download PDF Solution"
+                                >
+                                  <ArrowDownTrayIcon className="w-3 h-3" />
+                                  <span>Download PDF</span>
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleDeleteSolution(assignment)}
+                                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1 transition-all duration-200"
+                                  title="Delete Solution"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                  <span>Delete</span>
+                                </button>
+                              </>
                             )}
                             
                             <button
